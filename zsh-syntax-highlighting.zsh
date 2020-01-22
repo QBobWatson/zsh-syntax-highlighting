@@ -28,7 +28,7 @@
 # -------------------------------------------------------------------------------------------------
 
 # First of all, ensure predictable parsing.
-zsh_highlight__aliases=`builtin alias -Lm '[^+]*'`
+typeset zsh_highlight__aliases="$(builtin alias -Lm '[^+]*')"
 # In zsh <= 5.2, `alias -L` emits aliases that begin with a plus sign ('alias -- +foo=42')
 # them without a '--' guard, so they don't round trip.
 #
@@ -103,9 +103,9 @@ _zsh_highlight__function_callable_p() {
 # zsh-users/zsh@48cadf4 http://www.zsh.org/mla/workers//2017/msg00034.html
 autoload -Uz is-at-least
 if is-at-least 5.4; then
-  zsh_highlight__pat_static_bug=false
+  typeset -g zsh_highlight__pat_static_bug=false
 else
-  zsh_highlight__pat_static_bug=true
+  typeset -g zsh_highlight__pat_static_bug=true
 fi
 
 # Array declaring active highlighters names.
@@ -147,7 +147,7 @@ _zsh_highlight()
   typeset -r zsyh_user_options
 
   emulate -L zsh
-  setopt localoptions warncreateglobal
+  setopt localoptions warncreateglobal nobashrematch
   local REPLY # don't leak $REPLY into global scope
 
   # Do not highlight if there are more than 300 chars in the buffer. It's most
@@ -203,24 +203,25 @@ _zsh_highlight()
     # Re-apply zle_highlight settings
 
     # region
-    if (( REGION_ACTIVE == 1 )); then
-      _zsh_highlight_apply_zle_highlight region standout "$MARK" "$CURSOR"
-    elif (( REGION_ACTIVE == 2 )); then
-      () {
+    () {
+      (( REGION_ACTIVE )) || return
+      integer min max
+      if (( MARK > CURSOR )) ; then
+	min=$CURSOR max=$MARK
+      else
+	min=$MARK max=$CURSOR
+      fi
+      if (( REGION_ACTIVE == 1 )); then
+	[[ $KEYMAP = vicmd ]] && (( max++ ))
+      elif (( REGION_ACTIVE == 2 )); then
         local needle=$'\n'
-        integer min max
-        if (( MARK > CURSOR )) ; then
-          min=$CURSOR max=$MARK
-        else
-          min=$MARK max=$CURSOR
-        fi
         # CURSOR and MARK are 0 indexed between letters like region_highlight
         # Do not include the newline in the highlight
         (( min = ${BUFFER[(Ib:min:)$needle]} ))
         (( max = ${BUFFER[(ib:max:)$needle]} - 1 ))
-        _zsh_highlight_apply_zle_highlight region standout "$min" "$max"
-      }
-    fi
+      fi
+      _zsh_highlight_apply_zle_highlight region standout "$min" "$max"
+    }
 
     # yank / paste (zsh-5.1.1 and newer)
     (( $+YANK_ACTIVE )) && (( YANK_ACTIVE )) && _zsh_highlight_apply_zle_highlight paste standout "$YANK_START" "$YANK_END"
@@ -498,6 +499,12 @@ zmodload zsh/parameter 2>/dev/null || true
 
 # Initialize the array of active highlighters if needed.
 [[ $#ZSH_HIGHLIGHT_HIGHLIGHTERS -eq 0 ]] && ZSH_HIGHLIGHT_HIGHLIGHTERS=(main)
+
+if (( $+X_ZSH_HIGHLIGHT_DIRS_BLACKLIST )); then
+  print >&2 'zsh-syntax-highlighting: X_ZSH_HIGHLIGHT_DIRS_BLACKLIST is deprecated. Please use ZSH_HIGHLIGHT_DIRS_BLACKLIST.'
+  ZSH_HIGHLIGHT_DIRS_BLACKLIST=($X_ZSH_HIGHLIGHT_DIRS_BLACKLIST)
+  unset X_ZSH_HIGHLIGHT_DIRS_BLACKLIST
+fi
 
 # Restore the aliases we unned
 eval "$zsh_highlight__aliases"

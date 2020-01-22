@@ -28,14 +28,18 @@
 # vim: ft=zsh sw=2 ts=2 et
 # -------------------------------------------------------------------------------------------------
 
-alias sdu='sudo -u'
-sudo(){}
-
-BUFFER='sdu phy1729 echo foo'
+# Define named and anonymous function using the alternative syntax
+BUFFER=$'function f { pwd }; function { pwd }'
 
 expected_region_highlight=(
-  '1 3 alias' # sdu
-  '5 11 default "issue #540"' # phy1729
-  '13 16 commmand "issue #540"' # echo (not builtin)
-  '18 20 default' # foo
+  '1 8 reserved-word' # function
+  '10 10 default' # f
+  '12 12 reserved-word "issue #237"' # {
+  '14 16 command "issue #237"' # pwd
+  '18 18 reserved-word "issue #237"' # }
+  '19 19 commandseparator' # ;
+  '21 28 reserved-word' # function
+  '30 30 reserved-word "issue #237"' # {
+  '32 34 command "issue #237"' # pwd
+  '36 36 reserved-word "issue #237"' # }
 )
