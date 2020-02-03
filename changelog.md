@@ -64,6 +64,21 @@ Selected bugfixes include:
   [#183]
 
 
+Known issues include:
+
+- A multiline alias that uses a simple command terminator (such as `;`, `|`, `&&`)
+  before a newline will incorrectly be highlighted as an error.  See issue #677
+  for examples and workarounds.
+  [#677]
+
+- Use of a simple parameter expansion (`${foo}` with nothing but a parameter
+  name inside the braces) in command position, when the value of the parameter
+  looks like an assignment (such as after `foo='bar=$(ls)'`), may result in
+  incorrect highlighting and "BUG" messages.  As a workaround, the expansion
+  may be nested (`${${foo}}`).
+  [#670]
+
+
 # Changes in version 0.6.0
 
 This is a stable release, featuring bugfixes and minor improvements.
